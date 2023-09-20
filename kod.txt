@@ -1,0 +1,64 @@
+import telegram
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext.dispatcher import run_async
+
+# Замените 'YOUR_BOT_TOKEN' на токен вашего бота Telegram
+TOKEN = '6044783292:AAFdiRKMGqJ1vpY3Di6ynMeUirvnWaPGTUY'
+
+# Создайте список для хранения администраторов
+admins = set(6535995680)
+
+# Функция для проверки, является ли пользователь администратором
+def is_admin(user_id):
+    return user_id in admins
+
+# Функция для обработки команды /startsh
+@run_async
+def startsh(update, context):
+    if is_admin(update.message.from_user.id):
+        try:
+            with open('shab.txt', 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    update.message.reply_text(line.strip())
+        except Exception as e:
+            update.message.reply_text(f'Произошла ошибка: {str(e)}')
+    else:
+        update.message.reply_text("У вас нет прав для выполнения этой команды.")
+
+# Функция для обработки команды .admreset
+@run_async
+def admreset(update, context):
+    if is_admin(update.message.from_user.id):
+        if context.args:
+            user_id = int(context.args[0])
+            admins.discard(user_id)
+            update.message.reply_text(f"Пользователь с ID {user_id} больше не является администратором.")
+        else:
+            update.message.reply_text("Пожалуйста, укажите ID пользователя для удаления его из администраторов.")
+    else:
+        update.message.reply_text("У вас нет прав для выполнения этой команды.")
+
+# Функция для обработки всех остальных сообщений
+@run_async
+def echo(update, context):
+    update.message.reply_text(update.message.text)
+
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    # Обработчик команды /startsh
+    dp.add_handler(CommandHandler("startsh", startsh))
+
+    # Обработчик команды .admreset
+    dp.add_handler(CommandHandler("admreset", admreset, pass_args=True))
+
+    # Обработчик всех остальных сообщений
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
